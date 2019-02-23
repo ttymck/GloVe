@@ -37,6 +37,7 @@ build/*
 
 text8*
 vocab.txt
+vocab_py.txt
 
 # OS X stuff
 ._*

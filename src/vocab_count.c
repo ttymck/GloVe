@@ -226,21 +226,19 @@ int find_arg(char *str, int argc, char **argv) {
 
 int main(int argc, char **argv) {
     int i;
-    if (argc == 1) {
-        printf("Simple tool to extract unigram counts\n");
-        printf("Author: Jeffrey Pennington (jpennin@stanford.edu)\n\n");
-        printf("Usage options:\n");
-        printf("\t-max-vocab <int>\n");
-        printf("\t\tUpper bound on vocabulary size, i.e. keep the <int> most frequent words. The minimum frequency words are randomly sampled so as to obtain an even distribution over the alphabet.\n");
-        printf("\t-min-count <int>\n");
-        printf("\t\tLower limit such that words which occur fewer than <int> times are discarded.\n");
-        printf("\nExample usage:\n");
-        printf("./vocab_count -max-vocab 100000 -min-count 10 < corpus.txt > vocab.txt\n");
-        return 0;
-    }
+    
+    // "Simple tool to extract unigram counts\n"
+    //     "Author: Jeffrey Pennington (jpennin@stanford.edu)\n\n"
+    //     "Usage options:\n"
+    //     "\t-max-vocab <int>\n"
+    //     "\t\tUpper bound on vocabulary size, i.e. keep the <int> most frequent words. The minimum frequency words are randomly sampled so as to obtain an even distribution over the alphabet.\n"
+    //     "\t-min-count <int>\n"
+    //     "\t\tLower limit such that words which occur fewer than <int> times are discarded.\n"
+    //     "\nExample usage:\n"
+    //     "./vocab_count -max-vocab 100000 -min-count 10 < corpus.txt > vocab.txt\n";
 
-    long long min_count = 1; // min occurrences for inclusion in vocab
-    long long max_vocab = 0; // max_vocab = 0 for no limit
+    long long min_count = 10; // min occurrences for inclusion in vocab
+    long long max_vocab = 100000; // max_vocab = 0 for no limit
 
     if ((i = find_arg((char *)"-max-vocab", argc, argv)) > 0) max_vocab = atoll(argv[i + 1]);
     if ((i = find_arg((char *)"-min-count", argc, argv)) > 0) min_count = atoll(argv[i + 1]);

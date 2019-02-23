@@ -35,5 +35,8 @@
 build/*
 *.swp
 
+text8*
+vocab.txt
+
 # OS X stuff
 ._*

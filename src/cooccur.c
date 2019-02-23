@@ -55,7 +55,6 @@ typedef struct hashrec {
     struct hashrec *next;
 } HASHREC;
 
-int verbose = 2; // 0, 1, or 2
 long long max_product; // Cutoff for product of word frequency ranks below which cooccurrence counts will be stored in a compressed full array
 long long overflow_length; // Number of cooccurrence records whose product exceeds max_product to store in memory before writing to disk
 int window_size = 15; // default context window size
@@ -257,7 +256,6 @@ int merge_files(int num) {
     fid = malloc(sizeof(FILE) * num);
     pq = malloc(sizeof(CRECID) * num);
     fout = stdout;
-    if (verbose > 1) fprintf(stderr, "Merging cooccurrence files: processed 0 lines.");
     
     /* Open all files and add first entry of each to priority queue */
     for (i = 0; i < num; i++) {
@@ -284,7 +282,6 @@ int merge_files(int num) {
     /* Repeatedly pop top node and fill priority queue until files have reached EOF */
     while (size > 0) {
         counter += merge_write(pq[0], &old, fout); // Only count the lines written to file, not duplicates
-        if ((counter%100000) == 0) if (verbose > 1) fprintf(stderr,"\033[39G%lld lines.",counter);
         i = pq[0].id;
         delete(pq, size);
         fread(&new, sizeof(CREC), 1, fid[i]);
@@ -316,22 +313,17 @@ int get_cooccurrence() {
     history = malloc(sizeof(long long) * window_size);
     
     fprintf(stderr, "COUNTING COOCCURRENCES\n");
-    if (verbose > 0) {
         fprintf(stderr, "window size: %d\n", window_size);
         if (symmetric == 0) fprintf(stderr, "context: asymmetric\n");
         else fprintf(stderr, "context: symmetric\n");
     }
-    if (verbose > 1) fprintf(stderr, "max product: %lld\n", max_product);
-    if (verbose > 1) fprintf(stderr, "overflow length: %lld\n", overflow_length);
     sprintf(format,"%%%ds %%lld", MAX_STRING_LENGTH); // Format to read from vocab file, which has (irrelevant) frequency data
-    if (verbose > 1) fprintf(stderr, "Reading vocab from file \"%s\"...", vocab_file);
     fid = fopen(vocab_file,"r");
     if (fid == NULL) {fprintf(stderr,"Unable to open vocab file %s.\n",vocab_file); return 1;}
     while (fscanf(fid, format, str, &id) != EOF) hashinsert(vocab_hash, str, ++j); // Here id is not used: inserting vocab words into hash table with their frequency rank, j
     fclose(fid);
     vocab_size = j;
     j = 0;
-    if (verbose > 1) fprintf(stderr, "loaded %lld words.\nBuilding lookup table...", vocab_size);
     
     /* Build auxiliary lookup table used to index into bigram_table */
     lookup = (long long *)calloc( vocab_size + 1, sizeof(long long) );
@@ -344,7 +336,6 @@ int get_cooccurrence() {
         if ((lookup[a] = max_product / a) < vocab_size) lookup[a] += lookup[a-1];
         else lookup[a] = lookup[a-1] + vocab_size;
     }
-    if (verbose > 1) fprintf(stderr, "table contains %lld elements.\n",lookup[a-1]);
     
     /* Allocate memory for full array which will store all cooccurrence counts for words whose product of frequency ranks is less than max_product */
     bigram_table = (real *)calloc( lookup[a-1] , sizeof(real) );
@@ -357,7 +348,6 @@ int get_cooccurrence() {
     // sprintf(format,"%%%ds",MAX_STRING_LENGTH);
     sprintf(filename,"%s_%04d.bin", file_head, fidcounter);
     foverflow = fopen(filename,"wb");
-    if (verbose > 1) fprintf(stderr,"Processing token: 0");
     
     /* For each token in input stream, calculate a weighted cooccurrence sum within window_size */
     while (1) {
@@ -371,28 +361,22 @@ int get_cooccurrence() {
             ind = 0;
         }
         flag = get_word(str, fid);
-        if (verbose > 2) fprintf(stderr, "Maybe processing token: %s\n", str);
         if (flag == 1) {
             // Newline, reset line index (j); maybe eof.
             if (feof(fid)) {
-                if (verbose > 2) fprintf(stderr, "Not getting coocurs as at eof\n");
                 break;
             }
             j = 0;
-            if (verbose > 2) fprintf(stderr, "Not getting coocurs as at newline\n");
             continue;
         }
         counter++;
-        if ((counter%100000) == 0) if (verbose > 1) fprintf(stderr,"\033[19G%lld",counter);
         htmp = hashsearch(vocab_hash, str);
         if (htmp == NULL) {
-            if (verbose > 2) fprintf(stderr, "Not getting coocurs as word not in vocab\n");
             continue; // Skip out-of-vocabulary words
         }
         w2 = htmp->id; // Target word (frequency rank)
         for (k = j - 1; k >= ( (j > window_size) ? j - window_size : 0 ); k--) { // Iterate over all words to the left of target word, but not past beginning of line
             w1 = history[k % window_size]; // Context word (frequency rank)
-            if (verbose > 2) fprintf(stderr, "Adding cooccur between words %lld and %lld.\n", w1, w2);
             if ( w1 < max_product/w2 ) { // Product is small enough to store in a full array
                 bigram_table[lookup[w1-1] + w2 - 2] += distance_weighting ? 1.0/((real)(j-k)) : 1.0; // Weight by inverse of distance between words if needed
                 if (symmetric > 0) bigram_table[lookup[w2-1] + w1 - 2] += distance_weighting ? 1.0/((real)(j-k)) : 1.0; // If symmetric context is used, exchange roles of w2 and w1 (ie look at right context too)
@@ -415,19 +399,16 @@ int get_cooccurrence() {
     }
     
     /* Write out temp buffer for the final time (it may not be full) */
-    if (verbose > 1) fprintf(stderr,"\033[0GProcessed %lld tokens.\n",counter);
     qsort(cr, ind, sizeof(CREC), compare_crec);
     write_chunk(cr,ind,foverflow);
     sprintf(filename,"%s_0000.bin",file_head);
     
     /* Write out full bigram_table, skipping zeros */
-    if (verbose > 1) fprintf(stderr, "Writing cooccurrences to disk");
     fid = fopen(filename,"wb");
     j = 1e6;
     for (x = 1; x <= vocab_size; x++) {
         if ( (long long) (0.75*log(vocab_size / x)) < j) {
             j = (long long) (0.75*log(vocab_size / x));
-            if (verbose > 1) fprintf(stderr,".");
         } // log's to make it look (sort of) pretty
         for (y = 1; y <= (lookup[x] - lookup[x-1]); y++) {
             if ((r = bigram_table[lookup[x-1] - 2 + y]) != 0) {
@@ -438,7 +419,6 @@ int get_cooccurrence() {
         }
     }
     
-    if (verbose > 1) fprintf(stderr,"%d files in total.\n",fidcounter + 1);
     fclose(fid);
     fclose(foverflow);
     free(cr);
@@ -468,35 +448,29 @@ int main(int argc, char **argv) {
     vocab_file = malloc(sizeof(char) * MAX_STRING_LENGTH);
     file_head = malloc(sizeof(char) * MAX_STRING_LENGTH);
     
-    if (argc == 1) {
-        printf("Tool to calculate word-word cooccurrence statistics\n");
-        printf("Author: Jeffrey Pennington (jpennin@stanford.edu)\n\n");
-        printf("Usage options:\n");
-        printf("\t-verbose <int>\n");
-        printf("\t\tSet verbosity: 0, 1, 2 (default), or 3\n");
-        printf("\t-symmetric <int>\n");
-        printf("\t\tIf <int> = 0, only use left context; if <int> = 1 (default), use left and right\n");
-        printf("\t-window-size <int>\n");
-        printf("\t\tNumber of context words to the left (and to the right, if symmetric = 1); default 15\n");
-        printf("\t-vocab-file <file>\n");
-        printf("\t\tFile containing vocabulary (truncated unigram counts, produced by 'vocab_count'); default vocab.txt\n");
-        printf("\t-memory <float>\n");
-        printf("\t\tSoft limit for memory consumption, in GB -- based on simple heuristic, so not extremely accurate; default 4.0\n");
-        printf("\t-max-product <int>\n");
-        printf("\t\tLimit the size of dense cooccurrence array by specifying the max product <int> of the frequency counts of the two cooccurring words.\n\t\tThis value overrides that which is automatically produced by '-memory'. Typically only needs adjustment for use with very large corpora.\n");
-        printf("\t-overflow-length <int>\n");
-        printf("\t\tLimit to length <int> the sparse overflow array, which buffers cooccurrence data that does not fit in the dense array, before writing to disk. \n\t\tThis value overrides that which is automatically produced by '-memory'. Typically only needs adjustment for use with very large corpora.\n");
-        printf("\t-overflow-file <file>\n");
-        printf("\t\tFilename, excluding extension, for temporary files; default overflow\n");
-        printf("\t-distance-weighting <int>\n");
-        printf("\t\tIf <int> = 0, do not weight cooccurrence count by distance between words; if <int> = 1 (default), weight the cooccurrence count by inverse of distance between words\n");
+    // printf("Tool to calculate word-word cooccurrence statistics\n");
+    // printf("Author: Jeffrey Pennington (jpennin@stanford.edu)\n\n");
+    // printf("Usage options:\n");
+    // printf("\t-symmetric <int>\n");
+    // printf("\t\tIf <int> = 0, only use left context; if <int> = 1 (default), use left and right\n");
+    // printf("\t-window-size <int>\n");
+    // printf("\t\tNumber of context words to the left (and to the right, if symmetric = 1); default 15\n");
+    // printf("\t-vocab-file <file>\n");
+    // printf("\t\tFile containing vocabulary (truncated unigram counts, produced by 'vocab_count'); default vocab.txt\n");
+    // printf("\t-memory <float>\n");
+    // printf("\t\tSoft limit for memory consumption, in GB -- based on simple heuristic, so not extremely accurate; default 4.0\n");
+    // printf("\t-max-product <int>\n");
+    // printf("\t\tLimit the size of dense cooccurrence array by specifying the max product <int> of the frequency counts of the two cooccurring words.\n\t\tThis value overrides that which is automatically produced by '-memory'. Typically only needs adjustment for use with very large corpora.\n");
+    // printf("\t-overflow-length <int>\n");
+    // printf("\t\tLimit to length <int> the sparse overflow array, which buffers cooccurrence data that does not fit in the dense array, before writing to disk. \n\t\tThis value overrides that which is automatically produced by '-memory'. Typically only needs adjustment for use with very large corpora.\n");
+    // printf("\t-overflow-file <file>\n");
+    // printf("\t\tFilename, excluding extension, for temporary files; default overflow\n");
+    // printf("\t-distance-weighting <int>\n");
+    // printf("\t\tIf <int> = 0, do not weight cooccurrence count by distance between words; if <int> = 1 (default), weight the cooccurrence count by inverse of distance between words\n");
 
-        printf("\nExample usage:\n");
-        printf("./cooccur -verbose 2 -symmetric 0 -window-size 10 -vocab-file vocab.txt -memory 8.0 -overflow-file tempoverflow < corpus.txt > cooccurrences.bin\n\n");
-        return 0;
-    }
+    // printf("\nExample usage:\n");
+    // return 0;
 
-    if ((i = find_arg((char *)"-verbose", argc, argv)) > 0) verbose = atoi(argv[i + 1]);
     if ((i = find_arg((char *)"-symmetric", argc, argv)) > 0) symmetric = atoi(argv[i + 1]);
     if ((i = find_arg((char *)"-window-size", argc, argv)) > 0) window_size = atoi(argv[i + 1]);
     if ((i = find_arg((char *)"-vocab-file", argc, argv)) > 0) strcpy(vocab_file, argv[i + 1]);

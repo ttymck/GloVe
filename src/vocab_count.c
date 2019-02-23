@@ -45,9 +45,6 @@ typedef struct hashrec {
     struct hashrec *next;
 } HASHREC;
 
-long long min_count = 1; // min occurrences for inclusion in vocab
-long long max_vocab = 0; // max_vocab = 0 for no limit
-
 
 /* Efficient string comparison */
 int scmp( char *s1, char *s2 ) {
@@ -163,7 +160,7 @@ int get_word(char *word, FILE *fin) {
     return 0;
 }
 
-int get_counts() {
+int get_counts(long long int min_count, long long int max_vocab) {
     long long i = 0, j = 0, vocab_size = 12500;
     // char format[20];
     char str[MAX_STRING_LENGTH + 1];
@@ -242,8 +239,13 @@ int main(int argc, char **argv) {
         return 0;
     }
 
+    long long min_count = 1; // min occurrences for inclusion in vocab
+    long long max_vocab = 0; // max_vocab = 0 for no limit
+
     if ((i = find_arg((char *)"-max-vocab", argc, argv)) > 0) max_vocab = atoll(argv[i + 1]);
     if ((i = find_arg((char *)"-min-count", argc, argv)) > 0) min_count = atoll(argv[i + 1]);
-    return get_counts();
+
+
+    return get_counts(min_count, max_vocab);
 }
 

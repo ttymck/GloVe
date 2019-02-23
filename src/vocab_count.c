@@ -73,7 +73,7 @@ int CompareVocab(const void *a, const void *b) {
 
 /* Move-to-front hashing and hash function from Hugh Williams, http://www.seg.rmit.edu.au/code/zwh-ipl/ */
 
-/* Simple bitwise hash function */-nm 
+/* Simple bitwise hash function */
 unsigned int bitwisehash(char *word, int tsize, unsigned int seed) {
     char c;
     unsigned int h;
@@ -207,6 +207,7 @@ int get_counts() {
         if (vocab[i].count < min_count) { // If a minimum frequency cutoff exists, truncate vocabulary
             break;
         }
+        printf("%s %lld\n",vocab[i].word,vocab[i].count);
     }
     
     return 0;

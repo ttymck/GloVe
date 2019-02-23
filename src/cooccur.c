@@ -61,7 +61,7 @@ int window_size = 15; // default context window size
 int symmetric = 1; // 0: asymmetric, 1: symmetric
 real memory_limit = 3; // soft limit, in gigabytes, used to estimate optimal array sizes
 int distance_weighting = 1; // Flag to control the distance weighting of cooccurrence counts
-char *vocab_file, *file_head;
+char *file_head;
 
 /* Efficient string comparison */
 int scmp( char *s1, char *s2 ) {
@@ -302,7 +302,7 @@ int merge_files(int num) {
 }
 
 /* Collect word-word cooccurrence counts from input stream */
-int get_cooccurrence() {
+int get_cooccurrence(char *vocab_file) {
     int flag, x, y, fidcounter = 1;
     long long a, j = 0, k, id, counter = 0, ind = 0, vocab_size, w1, w2, *lookup, *history;
     char format[20], filename[200], str[MAX_STRING_LENGTH + 1];
@@ -439,6 +439,8 @@ int find_arg(char *str, int argc, char **argv) {
 }
 
 int main(int argc, char **argv) {
+    char *vocab_file;
+
     int i;
     real rlimit, n = 1e5;
     vocab_file = malloc(sizeof(char) * MAX_STRING_LENGTH);
@@ -487,6 +489,6 @@ int main(int argc, char **argv) {
     if ((i = find_arg((char *)"-max-product", argc, argv)) > 0) max_product = atoll(argv[i + 1]);
     if ((i = find_arg((char *)"-overflow-length", argc, argv)) > 0) overflow_length = atoll(argv[i + 1]);
     
-    return get_cooccurrence();
+    return get_cooccurrence(vocab_file);
 }
 

@@ -39,5 +39,7 @@ text8*
 vocab.txt
 vocab_py.txt
 
+coocurrences.bin
+
 # OS X stuff
 ._*

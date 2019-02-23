@@ -312,11 +312,7 @@ int get_cooccurrence() {
     CREC *cr = malloc(sizeof(CREC) * (overflow_length + 1));
     history = malloc(sizeof(long long) * window_size);
     
-    fprintf(stderr, "COUNTING COOCCURRENCES\n");
-        fprintf(stderr, "window size: %d\n", window_size);
-        if (symmetric == 0) fprintf(stderr, "context: asymmetric\n");
-        else fprintf(stderr, "context: symmetric\n");
-    }
+
     sprintf(format,"%%%ds %%lld", MAX_STRING_LENGTH); // Format to read from vocab file, which has (irrelevant) frequency data
     fid = fopen(vocab_file,"r");
     if (fid == NULL) {fprintf(stderr,"Unable to open vocab file %s.\n",vocab_file); return 1;}

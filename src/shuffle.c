@@ -36,9 +36,7 @@ typedef struct cooccur_rec {
     real val;
 } CREC;
 
-long long array_size = 2000000; // size of chunks to shuffle individually
 char *file_head; // temporary file string
-real memory_limit = 2.0; // soft limit, in gigabytes
 
 /* Efficient string comparison */
 int scmp( char *s1, char *s2 ) {
@@ -77,7 +75,7 @@ void shuffle(CREC *array, long n) {
 }
 
 /* Merge shuffled temporary files; doesn't necessarily produce a perfect shuffle, but good enough */
-int shuffle_merge(int num) {
+int shuffle_merge(int num, long long array_size) {
     long i, j, k, l = 0;
     int fidcounter = 0;
     CREC *array;
@@ -123,7 +121,7 @@ int shuffle_merge(int num) {
 }
 
 /* Shuffle large input stream by splitting into chunks */
-int shuffle_by_chunks() {
+int shuffle_by_chunks(long long array_size) {
     long i = 0, l = 0;
     int fidcounter = 0;
     char filename[MAX_STRING_LENGTH];
@@ -164,7 +162,7 @@ int shuffle_by_chunks() {
 
     fclose(fid);
     free(array);
-    return shuffle_merge(fidcounter + 1); // Merge and shuffle together temporary files
+    return shuffle_merge(fidcounter + 1, array_size); // Merge and shuffle together temporary files
 }
 
 int find_arg(char *str, int argc, char **argv) {
@@ -182,6 +180,9 @@ int find_arg(char *str, int argc, char **argv) {
 }
 
 int main(int argc, char **argv) {
+    real memory_limit = 2.0; // soft limit, in gigabytes
+    long long array_size = 2000000; // size of chunks to shuffle individually
+
     int i;
     file_head = malloc(sizeof(char) * MAX_STRING_LENGTH);
     
@@ -206,6 +207,6 @@ int main(int argc, char **argv) {
     if ((i = find_arg((char *)"-memory", argc, argv)) > 0) memory_limit = atof(argv[i + 1]);
     array_size = (long long) (0.95 * (real)memory_limit * 1073741824/(sizeof(CREC)));
     if ((i = find_arg((char *)"-array-size", argc, argv)) > 0) array_size = atoll(argv[i + 1]);
-    return shuffle_by_chunks();
+    return shuffle_by_chunks(array_size);
 }
 

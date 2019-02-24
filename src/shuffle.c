@@ -186,21 +186,21 @@ int main(int argc, char **argv) {
     int i;
     file_head = malloc(sizeof(char) * MAX_STRING_LENGTH);
     
-    if (argc == 1) {
-        printf("Tool to shuffle entries of word-word cooccurrence files\n");
-        printf("Author: Jeffrey Pennington (jpennin@stanford.edu)\n\n");
-        printf("Usage options:\n");
-        printf("\t-memory <float>\n");
-        printf("\t\tSoft limit for memory consumption, in GB; default 4.0\n");
-        printf("\t-array-size <int>\n");
-        printf("\t\tLimit to length <int> the buffer which stores chunks of data to shuffle before writing to disk. \n\t\tThis value overrides that which is automatically produced by '-memory'.\n");
-        printf("\t-temp-file <file>\n");
-        printf("\t\tFilename, excluding extension, for temporary files; default temp_shuffle\n");
+    // if (argc == 1) {
+    //     printf("Tool to shuffle entries of word-word cooccurrence files\n");
+    //     printf("Author: Jeffrey Pennington (jpennin@stanford.edu)\n\n");
+    //     printf("Usage options:\n");
+    //     printf("\t-memory <float>\n");
+    //     printf("\t\tSoft limit for memory consumption, in GB; default 4.0\n");
+    //     printf("\t-array-size <int>\n");
+    //     printf("\t\tLimit to length <int> the buffer which stores chunks of data to shuffle before writing to disk. \n\t\tThis value overrides that which is automatically produced by '-memory'.\n");
+    //     printf("\t-temp-file <file>\n");
+    //     printf("\t\tFilename, excluding extension, for temporary files; default temp_shuffle\n");
         
-        printf("\nExample usage: (assuming 'cooccurrence.bin' has been produced by 'coccur')\n");
-        printf("./shuffle -memory 8.0 < cooccurrence.bin > cooccurrence.shuf.bin\n");
-        return 0;
-    }
+    //     printf("\nExample usage: (assuming 'cooccurrence.bin' has been produced by 'coccur')\n");
+    //     printf("./shuffle -memory 8.0 < cooccurrence.bin > cooccurrence.shuf.bin\n");
+    //     return 0;
+    // }
    
     if ((i = find_arg((char *)"-temp-file", argc, argv)) > 0) strcpy(file_head, argv[i + 1]);
     else strcpy(file_head, (char *)"temp_shuffle");

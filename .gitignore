@@ -43,5 +43,7 @@ cooccurrences.bin*
 
 shuf.bin*
 
+output/*
+
 # OS X stuff
 ._*

@@ -42,7 +42,6 @@ typedef struct cooccur_rec {
 } CREC;
 
 int write_header=0; //0=no, 1=yes; writes vocab_size/vector_size as first line for use with some libraries, such as gensim.
-int verbose = 2; // 0, 1, or 2
 int use_unk_vec = 1; // 0 or 1
 int num_threads = 8; // pthreads
 int num_iter = 25; // Number of full passes through cooccurrence matrix
@@ -306,13 +305,7 @@ int train_glove() {
     num_lines = file_size/(sizeof(CREC)); // Assuming the file isn't corrupt and consists only of CREC's
     fclose(fin);
     fprintf(stderr,"Read %lld lines.\n", num_lines);
-    if (verbose > 1) fprintf(stderr,"Initializing parameters...");
     initialize_parameters();
-    if (verbose > 1) fprintf(stderr,"done.\n");
-    if (verbose > 0) fprintf(stderr,"vector size: %d\n", vector_size);
-    if (verbose > 0) fprintf(stderr,"vocab size: %lld\n", vocab_size);
-    if (verbose > 0) fprintf(stderr,"x_max: %lf\n", x_max);
-    if (verbose > 0) fprintf(stderr,"alpha: %lf\n", alpha);
     pthread_t *pt = (pthread_t *)malloc(num_threads * sizeof(pthread_t));
     lines_per_thread = (long long *) malloc(num_threads * sizeof(long long));
     
@@ -364,6 +357,49 @@ int find_arg(char *str, int argc, char **argv) {
     return -1;
 }
 
+int glove(char *f_coocur, char *f_vocab, char *f_save, char *f_gradsq,
+        int _write_header, int _vector_size, int _threads, real _alpha, 
+        real _x_max, int _model, real _eta, int _num_iter, int _use_binary, int _checkpoint) {
+    int i;
+    FILE *fid;
+    vocab_file = malloc(sizeof(char) * MAX_STRING_LENGTH);
+    input_file = malloc(sizeof(char) * MAX_STRING_LENGTH);
+    save_W_file = malloc(sizeof(char) * MAX_STRING_LENGTH);
+    save_gradsq_file = malloc(sizeof(char) * MAX_STRING_LENGTH);
+    int result = 0;
+
+    write_header = _write_header;
+    vector_size = _vector_size;
+    num_threads = _threads; cost = malloc(sizeof(real) * num_threads);
+    alpha = _alpha;
+    x_max = _x_max;
+    model = _model;
+    strcpy(save_gradsq_file, f_gradsq); save_gradsq = 1;
+    strcpy(vocab_file, f_vocab);
+    strcpy(save_W_file, f_save);
+    strcpy(input_file, f_coocur);
+    num_iter = _num_iter;
+    eta = _eta;
+    use_binary = _use_binary;
+    if (model != 0 && model != 1) model = 2;
+    checkpoint_every = _checkpoint;
+    
+    vocab_size = 0;
+    fid = fopen(vocab_file, "r");
+    if (fid == NULL) {fprintf(stderr, "Unable to open vocab file %s.\n",vocab_file); return 1;}
+    while ((i = getc(fid)) != EOF) if (i == '\n') vocab_size++; // Count number of entries in vocab_file
+    fclose(fid);
+
+    result = train_glove();
+
+    free(cost);
+    free(vocab_file);
+    free(input_file);
+    free(save_W_file);
+    free(save_gradsq_file);
+    return result;
+}
+
 int main(int argc, char **argv) {
     int i;
     FILE *fid;
@@ -377,8 +413,6 @@ int main(int argc, char **argv) {
         printf("GloVe: Global Vectors for Word Representation, v0.2\n");
         printf("Author: Jeffrey Pennington (jpennin@stanford.edu)\n\n");
         printf("Usage options:\n");
-        printf("\t-verbose <int>\n");
-        printf("\t\tSet verbosity: 0, 1, or 2 (default)\n");
         printf("\t-write-header <int>\n");
         printf("\t\tIf 1, write vocab_size/vector_size as first line. Do nothing if 0 (default).\n");
         printf("\t-vector-size <int>\n");
@@ -413,11 +447,10 @@ int main(int argc, char **argv) {
         printf("\t-checkpoint-every <int>\n");
         printf("\t\tCheckpoint a  model every <int> iterations; default 0 (off)\n");
         printf("\nExample usage:\n");
-        printf("./glove -input-file cooccurrence.shuf.bin -vocab-file vocab.txt -save-file vectors -gradsq-file gradsq -verbose 2 -vector-size 100 -threads 16 -alpha 0.75 -x-max 100.0 -eta 0.05 -binary 2 -model 2\n\n");
+        printf("./glove -input-file cooccurrence.shuf.bin -vocab-file vocab.txt -save-file vectors -gradsq-file gradsq -vector-size 100 -threads 16 -alpha 0.75 -x-max 100.0 -eta 0.05 -binary 2 -model 2\n\n");
         result = 0;
     } else {
         if ((i = find_arg((char *)"-write-header", argc, argv)) > 0) write_header = atoi(argv[i + 1]);
-        if ((i = find_arg((char *)"-verbose", argc, argv)) > 0) verbose = atoi(argv[i + 1]);
         if ((i = find_arg((char *)"-vector-size", argc, argv)) > 0) vector_size = atoi(argv[i + 1]);
         if ((i = find_arg((char *)"-iter", argc, argv)) > 0) num_iter = atoi(argv[i + 1]);
         if ((i = find_arg((char *)"-threads", argc, argv)) > 0) num_threads = atoi(argv[i + 1]);
